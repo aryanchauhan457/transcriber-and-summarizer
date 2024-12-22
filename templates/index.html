@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture Transcription</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        
+        nav {
+            background-color: #333;
+            color: #fff;
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        
+        nav a {
+            color: #fff;
+            margin: 0 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        nav a:hover {
+            text-decoration: underline;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 80px auto 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        
+        .header-image {
+            width: 450px;
+            height: 300px;
+            background-image: url('https://transkriptor.com/img/landing-images/video-to-text-img1.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: 10px;
+            margin-right: 20px;
+        }
+        
+        .content {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .upload-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        #fileInput {
+            margin-right: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        #uploadButton, #downloadButton {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        #uploadButton:hover {
+            background-color: #3e8e41;
+        }
+        
+        .progress-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        #progressBar {
+            width: 50%;
+            height: 10px;
+            margin-right: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        #progressText {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        #transcription {
+            width: 80%;
+            height: 200px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="#">FAQ</a>
+        <a href="/contact">Contact</a>
+    </nav>
+    <div class="container">
+        <div class="header-image"></div>
+        <div class="content">
+            <h1 class="title">Lecture Transcriber</h1>
+            <div class="upload-section">
+                <input type="file" id="fileInput" accept=".mp4, .mkv, .avi">
+                <button id="uploadButton">Upload and Transcribe</button>
+            </div>
+            <div class="progress-section">
+                <progress id="progressBar" max="100" value="0"></progress>
+                <p id="progressText">0%</p>
+            </div>
+            <textarea id="transcription" readonly>
+This is a sample transcription text. Please upload your video file to transcribe it. 
+Our transcription service supports MP4, MKV, and AVI file formats.
+Once you upload your file, our system will start transcribing it.
+You can track the progress of the transcription process using the progress bar above.
+Once the transcription is complete, the text will be displayed in this text area.
+            </textarea>
+            <div id="downloadLinks" style="display: none;">
+                <a id="downloadNotes" href= "{{ url_for('download_file', filename='nas_file.txt') }}">
+                    <button  id = "downloadButton">Download Notes with Summary</button>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const transcriptionArea = document.getElementById('transcription');
+        const downloadLinks = document.getElementById('downloadLinks');
+        const downloadNotes = document.getElementById('downloadNotes');
+    
+        uploadButton.addEventListener('click', () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a file to upload.");
+                return;
+            }
+    
+            const formData = new FormData();
+            formData.append('file', file);
+    
+            // Reset progress bar and transcription area
+            progressBar.value = 0;
+            progressText.textContent = '0%';
+            transcriptionArea.value = 'Uploading and transcribing...';
+    
+            fetch('/uploaded', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.transcription) {
+                    transcriptionArea.value = data.transcription;
+                    progressBar.value = 100;
+                    progressText.textContent = '100%';
+                    downloadLinks.style.display = 'block';
+                } else if (data.error) {
+                    transcriptionArea.value = `Error: ${data.error}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                transcriptionArea.value = "An error occurred during upload or transcription.";
+            });
+    
+            // Simulate progress bar animation
+            let progress = 0;
+            const intervalId = setInterval(() => {
+                if (progress < 90) {
+                    progress += 10;
+                    progressBar.value = progress;
+                    progressText.textContent = `${progress}%`;
+                } else {
+                    clearInterval(intervalId);
+                }
+            }, 5000);
+        });
+    </script>
+    
+</body>
+</html>
